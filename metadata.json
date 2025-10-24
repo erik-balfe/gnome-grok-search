@@ -1,6 +1,8 @@
 {
   "name": "Grok Search Provider",
-  "description": "Adds Grok search to GNOME overview",
-  "uuid": "grok-search@custom.com",
-  "shell-version": ["46", "47", "48"]
+  "description": "Adds Grok AI search to GNOME overview for quick queries.",
+  "uuid": "grok-search@erik-balfe.github.io",
+  "shell-version": ["40", "41", "42", "43", "44", "45", "46", "47", "48", "49"],
+  "url": "https://github.com/erik-balfe/gnome-grok-search",
+  "version": 1
 }
