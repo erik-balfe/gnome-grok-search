@@ -1,85 +1,71 @@
-import St from 'gi://St';
-import Gio from 'gi://Gio';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+const St = imports.gi.St;
+const Gio = imports.gi.Gio;
+const Main = imports.ui.main;
+const { Extension } = imports.misc.extensionUtils.getCurrentExtension();
 
-class SearchProvider {
+class GrokSearchProvider {
     constructor(extension) {
-        this._extension = extension;
-        this.terms = [];  // Store terms for metadata
+        this.extension = extension;
+        this.terms = [];
     }
 
-    get appInfo() {
-        return null;
+    getInitialResultSet(terms, callback) {
+        this.terms = terms;
+        callback(terms.length > 0 ? ['grok-search'] : []);
     }
 
-    get canLaunchSearch() {
-        return false;
+    getSubsearchResultSet(previousResults, terms, callback) {
+        this.getInitialResultSet(terms, callback);
     }
 
-    get id() {
-        return this._extension.uuid;
+    getResultMetas(results, callback) {
+        const { scaleFactor } = St.ThemeContext.get_for_stage(global.stage);
+        const metas = results.map(id => ({
+            id,
+            name: `Ask Grok: ${this.terms.join(' ')}`,
+            description: 'Search with Grok AI',
+            createIcon: size => new St.Icon({
+                // Use custom icon if present, fallback to symbolic
+                gicon: Gio.icon_new_for_string(this.extension.dir.get_path() + '/icon.jpg') ||
+                       new Gio.ThemedIcon({ name: 'system-search-symbolic' }),
+                width: size * scaleFactor,
+                height: size * scaleFactor,
+            }),
+        }));
+        callback(metas);
     }
 
-    activateResult(result, terms) {
-        if (result === 'grok-search') {
+    activateResult(resultId, terms) {
+        if (resultId === 'grok-search') {
             const query = terms.join(' ');
             const url = `https://grok.com/?q=${encodeURIComponent(query)}`;
-            Gio.AppInfo.launch_default_for_uri(url, null);
-        }
-    }
-
-    launchSearch(terms) {
-        // No-op
-    }
-
-    createResultObject(meta) {
-        return null;
-    }
-
-    async getResultMetas(results, cancellable) {
-        const {scaleFactor} = St.ThemeContext.get_for_stage(global.stage);
-        const resultMetas = [];
-        for (const id of results) {
-            if (id === 'grok-search') {
-                resultMetas.push({
-                    id,
-                    name: `Ask Grok: ${this.terms.join(' ')}`,
-                    description: 'Search with Grok AI',
-                    clipboardText: '',
-                    createIcon: size => new St.Icon({
-                        icon_name: 'system-search-symbolic',  // Or use a custom icon if you add one
-                        width: size * scaleFactor,
-                        height: size * scaleFactor,
-                    }),
-                });
+            try {
+                Gio.AppInfo.launch_default_for_uri(url, null);
+            } catch (e) {
+                logError(e, 'Failed to launch Grok URL');
             }
         }
-        return resultMetas;
-    }
-
-    async getInitialResultSet(terms, cancellable) {
-        this.terms = terms;  // Save for later
-        return terms.length > 0 ? ['grok-search'] : [];
-    }
-
-    async getSubsearchResultSet(results, terms, cancellable) {
-        return this.getInitialResultSet(terms, cancellable);
-    }
-
-    filterResults(results, maxResults) {
-        return results.slice(0, maxResults);
     }
 }
 
-export default class GrokSearchExtension extends Extension {
+class ExtensionClass {
+    constructor(extension) {
+        this.extension = extension;
+    }
+
     enable() {
-        this._provider = new SearchProvider(this);
-        Main.overview.searchController.addProvider(this._provider);
+        this.provider = new GrokSearchProvider(this.extension);
+        Main.overview.searchController.addProvider(this.provider);
     }
 
     disable() {
-        Main.overview.searchController.removeProvider(this._provider);
-        this._provider = null;
+        if (this.provider) {
+            Main.overview.searchController.removeProvider(this.provider);
+            this.provider = null;
+        }
     }
+}
+
+function init(meta) {
+    return new ExtensionClass(meta);
 }
