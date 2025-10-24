@@ -1,0 +1,6 @@
+{
+  "name": "Grok Search Provider",
+  "description": "Adds Grok search to GNOME overview",
+  "uuid": "grok-search@custom.com",
+  "shell-version": ["46", "47", "48"]
+}
