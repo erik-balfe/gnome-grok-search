@@ -1,7 +1,7 @@
-const St = imports.gi.St;
-const Gio = imports.gi.Gio;
-const Main = imports.ui.main;
-const { Extension } = imports.misc.extensionUtils.getCurrentExtension();
+import St from 'gi://St';
+import Gio from 'gi://Gio';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 class GrokSearchProvider {
     constructor(extension) {
@@ -25,8 +25,7 @@ class GrokSearchProvider {
             name: `Ask Grok: ${this.terms.join(' ')}`,
             description: 'Search with Grok AI',
             createIcon: size => new St.Icon({
-                // Use custom icon if present, fallback to symbolic
-                gicon: Gio.icon_new_for_string(this.extension.dir.get_path() + '/icon.jpg') ||
+                gicon: Gio.icon_new_for_string(`${this.extension.dir.get_path()}/icon.jpg`) ||
                        new Gio.ThemedIcon({ name: 'system-search-symbolic' }),
                 width: size * scaleFactor,
                 height: size * scaleFactor,
@@ -48,24 +47,20 @@ class GrokSearchProvider {
     }
 }
 
-class ExtensionClass {
-    constructor(extension) {
-        this.extension = extension;
+export default class GrokSearchExtension extends Extension {
+    constructor(metadata) {
+        super(metadata);
     }
 
     enable() {
-        this.provider = new GrokSearchProvider(this.extension);
-        Main.overview.searchController.addProvider(this.provider);
+        this._provider = new GrokSearchProvider(this);
+        Main.overview.searchController.addProvider(this._provider);
     }
 
     disable() {
-        if (this.provider) {
-            Main.overview.searchController.removeProvider(this.provider);
-            this.provider = null;
+        if (this._provider) {
+            Main.overview.searchController.removeProvider(this._provider);
+            this._provider = null;
         }
     }
-}
-
-function init(meta) {
-    return new ExtensionClass(meta);
 }
